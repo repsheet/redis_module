@@ -1,0 +1,5 @@
+*.o
+*.a
+*.so
+*.db
+rmutil/test_vector
