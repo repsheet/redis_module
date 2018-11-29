@@ -13,35 +13,34 @@ static char *str(RedisModuleString *input) {
 }
 
 /*
- * REPSHEET.BLACKLIST <address> <reason>
- * Creates a Repsheet blacklist entry for the specified address
+ * REPSHEET.BLACKLIST <address> <reason> <ttl>
+ * Creates a Repsheet blacklist entry for the specified address.
+ * If a ttl is provided, the key will be set to expire after <ttl>
+ * seconds.
  *
  */
 int BlacklistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  if (argc != 3) {
+  if (argc != 3 && argc != 4) {
     return RedisModule_WrongArity(ctx);
   }
 
   RedisModule_AutoMemory(ctx);
 
-  RedisModuleString *keyString =
-      RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:blacklisted", str(argv[1]));
+  RedisModuleString *keyString = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:blacklisted", str(argv[1]));
   RedisModuleKey *key = RedisModule_OpenKey(ctx, keyString, REDISMODULE_READ | REDISMODULE_WRITE);
 
-  int keytype = RedisModule_KeyType(key);
-  if (keytype != REDISMODULE_KEYTYPE_STRING && keytype != REDISMODULE_KEYTYPE_EMPTY) {
-    return RedisModule_ReplyWithError(ctx, REDISMODULE_ERRORMSG_WRONGTYPE);
+  int keyType = RedisModule_KeyType(key);
+  if (keyType == REDISMODULE_KEYTYPE_EMPTY || keyType == REDISMODULE_KEYTYPE_STRING) {
+    RedisModule_StringSet(key, argv[2]);
+    if (argc == 4) {
+      long long timeout;
+      RedisModule_StringToLongLong(argv[3], &timeout);
+      RedisModule_SetExpire(key, timeout * 1000);
+    }
   }
 
-  RedisModuleCallReply *rep = RedisModule_Call(ctx, "SET", "ss", keyString, argv[2]);
-  RMUTIL_ASSERT_NOERROR(ctx, rep);
-
-  if (RedisModule_CallReplyType(rep) == REDISMODULE_REPLY_NULL) {
-    RedisModule_ReplyWithNull(ctx);
-    return REDISMODULE_OK;
-  }
-
-  RedisModule_ReplyWithCallReply(ctx, rep);
+  RedisModule_CloseKey(key);
+  RedisModule_ReplyWithSimpleString(ctx, "OK");
 
   return REDISMODULE_OK;
 }
