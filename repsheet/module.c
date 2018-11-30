@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "../redismodule.h"
 #include "../rmutil/util.h"
 #include "../rmutil/strings.h"
@@ -38,8 +39,23 @@ int Record(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, const char *
   return REDISMODULE_OK;
 }
 
+int CheckList(RedisModuleCtx *ctx, RedisModuleString *list) {
+  bool isListed = false;
+
+  RedisModuleKey *key = RedisModule_OpenKey(ctx, list, REDISMODULE_READ);
+
+  int keyType = RedisModule_KeyType(key);
+  if (keyType == REDISMODULE_KEYTYPE_STRING) {
+    isListed = true;
+  }
+
+  RedisModule_CloseKey(key);
+
+  return isListed;
+}
+
 /*
- * REPSHEET.BLACKLIST <address> <reason> <ttl>
+ * REPSHEET.BLACKLIST <actor> <reason> <ttl>
  * Creates a Repsheet blacklist entry for the specified address.
  * If a ttl is provided, the key will be set to expire after <ttl>
  * seconds.
@@ -50,7 +66,7 @@ int BlacklistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 }
 
 /*
- * REPSHEET.WHITELIST <address> <reason> <ttl>
+ * REPSHEET.WHITELIST <actor> <reason> <ttl>
  * Creates a Repsheet whitelist entry for the specified address.
  * If a ttl is provided, the key will be set to expire after <ttl>
  * seconds.
@@ -61,7 +77,7 @@ int WhitelistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 }
 
 /*
- * REPSHEET.MARK <address> <reason> <ttl>
+ * REPSHEET.MARK <actor> <reason> <ttl>
  * Creates a Repsheet marklist entry for the specified address.
  * If a ttl is provided, the key will be set to expire after <ttl>
  * seconds.
@@ -69,6 +85,40 @@ int WhitelistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
  */
 int MarkCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return Record(ctx, argv, argc, "marked");
+}
+
+
+/*
+ * REPSHEET.STATUS <actor>
+ * Looks up the actor in the cache and returns its status
+ *
+ */
+int StatusCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+
+  RedisModule_AutoMemory(ctx);
+
+  RedisModuleString *whitelist = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:whitelisted", str(argv[1]));
+  RedisModuleString *blacklist = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:blacklisted", str(argv[1]));
+  RedisModuleString *marklist = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:marked", str(argv[1]));
+
+  bool isWhitelisted = CheckList(ctx, whitelist);
+  bool isBlacklisted = CheckList(ctx, blacklist);
+  bool isMarked = CheckList(ctx, marklist);
+
+  if (isWhitelisted) {
+    RedisModule_ReplyWithSimpleString(ctx, "WHITELISTED");
+  } else if (isBlacklisted) {
+    RedisModule_ReplyWithSimpleString(ctx, "BLACKLISTED");
+  } else if (isMarked) {
+    RedisModule_ReplyWithSimpleString(ctx, "MARKED");
+  } else {
+    RedisModule_ReplyWithSimpleString(ctx, "OK");
+  }
+
+  return REDISMODULE_OK;
 }
 
 int RedisModule_OnLoad(RedisModuleCtx *ctx) {
@@ -79,6 +129,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx) {
   RMUtil_RegisterWriteCmd(ctx, "repsheet.blacklist", BlacklistCommand);
   RMUtil_RegisterWriteCmd(ctx, "repsheet.whitelist", WhitelistCommand);
   RMUtil_RegisterWriteCmd(ctx, "repsheet.mark",      MarkCommand);
+  RMUtil_RegisterWriteCmd(ctx, "repsheet.status",    StatusCommand);
 
   return REDISMODULE_OK;
 }
