@@ -12,21 +12,14 @@ static char *str(RedisModuleString *input) {
   return p;
 }
 
-/*
- * REPSHEET.BLACKLIST <address> <reason> <ttl>
- * Creates a Repsheet blacklist entry for the specified address.
- * If a ttl is provided, the key will be set to expire after <ttl>
- * seconds.
- *
- */
-int BlacklistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+int Record(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, const char *list) {
   if (argc != 3 && argc != 4) {
     return RedisModule_WrongArity(ctx);
   }
 
   RedisModule_AutoMemory(ctx);
 
-  RedisModuleString *keyString = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:blacklisted", str(argv[1]));
+  RedisModuleString *keyString = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:%s", str(argv[1]), list);
   RedisModuleKey *key = RedisModule_OpenKey(ctx, keyString, REDISMODULE_READ | REDISMODULE_WRITE);
 
   int keyType = RedisModule_KeyType(key);
@@ -43,6 +36,17 @@ int BlacklistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   RedisModule_ReplyWithSimpleString(ctx, "OK");
 
   return REDISMODULE_OK;
+}
+
+/*
+ * REPSHEET.BLACKLIST <address> <reason> <ttl>
+ * Creates a Repsheet blacklist entry for the specified address.
+ * If a ttl is provided, the key will be set to expire after <ttl>
+ * seconds.
+ *
+ */
+int BlacklistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  return Record(ctx, argv, argc, "blacklisted");
 }
 
 /*
@@ -53,29 +57,7 @@ int BlacklistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
  *
  */
 int WhitelistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  if (argc != 3 && argc != 4) {
-    return RedisModule_WrongArity(ctx);
-  }
-
-  RedisModule_AutoMemory(ctx);
-
-  RedisModuleString *keyString = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:whitelisted", str(argv[1]));
-  RedisModuleKey *key = RedisModule_OpenKey(ctx, keyString, REDISMODULE_READ | REDISMODULE_WRITE);
-
-  int keyType = RedisModule_KeyType(key);
-  if (keyType == REDISMODULE_KEYTYPE_EMPTY || keyType == REDISMODULE_KEYTYPE_STRING) {
-    RedisModule_StringSet(key, argv[2]);
-    if (argc == 4) {
-      long long timeout;
-      RedisModule_StringToLongLong(argv[3], &timeout);
-      RedisModule_SetExpire(key, timeout * 1000);
-    }
-  }
-
-  RedisModule_CloseKey(key);
-  RedisModule_ReplyWithSimpleString(ctx, "OK");
-
-  return REDISMODULE_OK;
+  return Record(ctx, argv, argc, "whitelisted");
 }
 
 /*
@@ -86,29 +68,7 @@ int WhitelistCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
  *
  */
 int MarkCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  if (argc != 3 && argc != 4) {
-    return RedisModule_WrongArity(ctx);
-  }
-
-  RedisModule_AutoMemory(ctx);
-
-  RedisModuleString *keyString = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:marked", str(argv[1]));
-  RedisModuleKey *key = RedisModule_OpenKey(ctx, keyString, REDISMODULE_READ | REDISMODULE_WRITE);
-
-  int keyType = RedisModule_KeyType(key);
-  if (keyType == REDISMODULE_KEYTYPE_EMPTY || keyType == REDISMODULE_KEYTYPE_STRING) {
-    RedisModule_StringSet(key, argv[2]);
-    if (argc == 4) {
-      long long timeout;
-      RedisModule_StringToLongLong(argv[3], &timeout);
-      RedisModule_SetExpire(key, timeout * 1000);
-    }
-  }
-
-  RedisModule_CloseKey(key);
-  RedisModule_ReplyWithSimpleString(ctx, "OK");
-
-  return REDISMODULE_OK;
+  return Record(ctx, argv, argc, "marked");
 }
 
 int RedisModule_OnLoad(RedisModuleCtx *ctx) {
