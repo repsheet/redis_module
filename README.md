@@ -10,7 +10,7 @@
 ## Quick Start Guide
 
 1. Build the module by running `make`
-2. Run redis loading the module: `/path/to/redis-server --loadmodule ./module.so`
+2. Run redis loading the module: `/path/to/redis-server --loadmodule ./repsheet.so`
 
 Now run `redis-cli` and try the commands:
 
