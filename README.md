@@ -3,6 +3,9 @@
 ## Module Commands
 
 * `REPSHEET.BLACKLIST` - Blacklist an IP Address
+* `REPSHEET.WHITELIST` - Whitelist an IP Address
+* `REPSHEET.MARK`      - Mark an IP Address
+* `REPSHEET.STATUS`    - Get the Status of an IP Address
 
 ## Quick Start Guide
 
@@ -18,4 +21,6 @@ OK
 1) "1.1.1.1:repsheet:ip:blacklisted"
 127.0.0.1:6379> get 1.1.1.1:repsheet:ip:blacklisted
 "manual"
+127.0.0.1:6379> REPSHEET.STATUS 1.1.1.1
+BLACKLISTED
 ```
