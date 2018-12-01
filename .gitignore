@@ -3,3 +3,4 @@
 *.so
 *.db
 rmutil/test_vector
+dump.rdb
