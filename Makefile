@@ -7,15 +7,15 @@ ifndef RMUTIL_LIBDIR
 endif
 
 ifndef SRC_DIR
-	SRC_DIR=repsheet
+	SRC_DIR=src
 endif
 
 
-all: module.so
+all: repsheet.so
 
-module.so:
+repsheet.so:
 	$(MAKE) -C ./$(SRC_DIR)
-	cp ./$(SRC_DIR)/module.so .
+	cp ./$(SRC_DIR)/repsheet.so .
 
 clean: FORCE
 	rm -rf *.xo *.so *.o
