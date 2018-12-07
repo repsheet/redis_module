@@ -10,12 +10,29 @@ ifndef SRC_DIR
 	SRC_DIR=src
 endif
 
-
 all: repsheet.so
 
 repsheet.so:
 	$(MAKE) -C ./$(SRC_DIR)
 	cp ./$(SRC_DIR)/repsheet.so .
+
+run: repsheet.so
+	redis-server --loadmodule src/repsheet.so
+
+.PHONY: docker
+docker:
+	docker build -t repsheet-redis .
+
+.PHONY: docker-run
+docker-run: docker
+	docker run -p 6379:6379 repsheet-redis
+
+virtualenv:
+	virtualenv -p python3 venv
+	venv/bin/pip install -r requirements.txt
+
+test: virtualenv
+	venv/bin/pytest test
 
 clean: FORCE
 	rm -rf *.xo *.so *.o
