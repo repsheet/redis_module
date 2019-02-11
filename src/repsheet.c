@@ -13,6 +13,12 @@ static char *str(RedisModuleString *input) {
   return p;
 }
 
+int publish(RedisModuleCtx *ctx, RedisModuleString *actor, const char *list) {
+  RedisModuleString *channel = RedisModule_CreateStringPrintf(ctx, "repsheet:ip:%s", list);
+  RedisModule_Call(ctx, "PUBLISH", "ss", channel, actor);
+  return 1;
+}
+
 int Record(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, const char *list) {
   if (argc != 3 && argc != 4) {
     return RedisModule_WrongArity(ctx);
@@ -34,6 +40,7 @@ int Record(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, const char *
   }
 
   RedisModule_CloseKey(key);
+  publish(ctx, argv[1], list);
   RedisModule_ReplyWithSimpleString(ctx, "OK");
 
   return REDISMODULE_OK;
