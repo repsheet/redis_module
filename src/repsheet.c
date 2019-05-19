@@ -4,6 +4,8 @@
 #include "../rmutil/strings.h"
 #include "../rmutil/test_util.h"
 
+#define MAX_REASON_LENGTH 1024
+
 static char *str(RedisModuleString *input) {
   size_t len;
   const char *s = RedisModule_StringPtrLen(input, &len);
@@ -13,10 +15,12 @@ static char *str(RedisModuleString *input) {
   return p;
 }
 
-int publish(RedisModuleCtx *ctx, RedisModuleString *actor, const char *list) {
+static void publish(RedisModuleCtx *ctx, RedisModuleString *actor, const char *list) {
   RedisModuleString *channel = RedisModule_CreateStringPrintf(ctx, "repsheet:ip:%s", list);
-  RedisModule_Call(ctx, "PUBLISH", "ss", channel, actor);
-  return 1;
+  RedisModuleCallReply *reply = RedisModule_Call(ctx, "PUBLISH", "ss", channel, actor);
+  if (RedisModule_CallReplyType(reply) == REDISMODULE_REPLY_ERROR) {
+    RedisModule_Log(ctx, "error", "Could not send PUBLISH");
+  }
 }
 
 int Record(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, const char *list) {
@@ -46,7 +50,7 @@ int Record(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, const char *
   return REDISMODULE_OK;
 }
 
-int CheckList(RedisModuleCtx *ctx, RedisModuleString *list) {
+bool CheckList(RedisModuleCtx *ctx, RedisModuleString *list, char *value) {
   bool isListed = false;
 
   RedisModuleKey *key = RedisModule_OpenKey(ctx, list, REDISMODULE_READ);
@@ -54,6 +58,9 @@ int CheckList(RedisModuleCtx *ctx, RedisModuleString *list) {
   int keyType = RedisModule_KeyType(key);
   if (keyType == REDISMODULE_KEYTYPE_STRING) {
     isListed = true;
+    size_t len = RedisModule_ValueLength(key);
+    char *dma_value = RedisModule_StringDMA(key, &len, REDISMODULE_READ);
+    strncpy(value, dma_value, len);
   }
 
   RedisModule_CloseKey(key);
@@ -111,19 +118,28 @@ int StatusCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   RedisModuleString *blacklist = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:blacklisted", str(argv[1]));
   RedisModuleString *marklist = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:marked", str(argv[1]));
 
-  bool isWhitelisted = CheckList(ctx, whitelist);
-  bool isBlacklisted = CheckList(ctx, blacklist);
-  bool isMarked = CheckList(ctx, marklist);
+  char reason[MAX_REASON_LENGTH] = {'\0'};
+  bool isWhitelisted = CheckList(ctx, whitelist, reason);
+  bool isBlacklisted = CheckList(ctx, blacklist, reason);
+  bool isMarked = CheckList(ctx, marklist, reason);
 
   if (isWhitelisted) {
+    RedisModule_ReplyWithArray(ctx, 2);
     RedisModule_ReplyWithSimpleString(ctx, "WHITELISTED");
+    RedisModule_ReplyWithSimpleString(ctx, reason);
   } else if (isBlacklisted) {
+    RedisModule_ReplyWithArray(ctx, 2);
     RedisModule_ReplyWithSimpleString(ctx, "BLACKLISTED");
+    RedisModule_ReplyWithSimpleString(ctx, reason);
   } else if (isMarked) {
+    RedisModule_ReplyWithArray(ctx, 2);
     RedisModule_ReplyWithSimpleString(ctx, "MARKED");
+    RedisModule_ReplyWithSimpleString(ctx, reason);
   } else {
+    RedisModule_ReplyWithArray(ctx, 2);
     RedisModule_ReplyWithSimpleString(ctx, "OK");
-  }
+    RedisModule_ReplyWithSimpleString(ctx, "");
+ }
 
   return REDISMODULE_OK;
 }
