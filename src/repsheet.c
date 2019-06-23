@@ -15,9 +15,10 @@ static char *str(RedisModuleString *input) {
   return p;
 }
 
-static void publish(RedisModuleCtx *ctx, RedisModuleString *actor, const char *list) {
+static void publish(RedisModuleCtx *ctx, RedisModuleString *actor, RedisModuleString *reason, const char *list) {
   RedisModuleString *channel = RedisModule_CreateStringPrintf(ctx, "repsheet:ip:%s", list);
-  RedisModuleCallReply *reply = RedisModule_Call(ctx, "PUBLISH", "ss", channel, actor);
+  RedisModuleString *message = RedisModule_CreateStringPrintf(ctx, "%s,%s", str(actor), str(reason));
+  RedisModuleCallReply *reply = RedisModule_Call(ctx, "PUBLISH", "ss", channel, message);
   if (RedisModule_CallReplyType(reply) == REDISMODULE_REPLY_ERROR) {
     RedisModule_Log(ctx, "error", "Could not send PUBLISH");
   }
@@ -44,7 +45,7 @@ int Record(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, const char *
   }
 
   RedisModule_CloseKey(key);
-  publish(ctx, argv[1], list);
+  publish(ctx, argv[1], argv[2], list);
   RedisModule_ReplyWithSimpleString(ctx, "OK");
 
   return REDISMODULE_OK;
