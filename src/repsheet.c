@@ -120,28 +120,36 @@ int StatusCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   RedisModuleString *marklist = RedisModule_CreateStringPrintf(ctx, "%s:repsheet:ip:marked", str(argv[1]));
 
   char reason[MAX_REASON_LENGTH] = {'\0'};
-  bool isWhitelisted = CheckList(ctx, whitelist, reason);
-  bool isBlacklisted = CheckList(ctx, blacklist, reason);
-  bool isMarked = CheckList(ctx, marklist, reason);
 
+  bool isWhitelisted = CheckList(ctx, whitelist, reason);
   if (isWhitelisted) {
     RedisModule_ReplyWithArray(ctx, 2);
     RedisModule_ReplyWithSimpleString(ctx, "WHITELISTED");
     RedisModule_ReplyWithSimpleString(ctx, reason);
-  } else if (isBlacklisted) {
+    return REDISMODULE_OK;
+  }
+
+  memset(reason, '\0', MAX_REASON_LENGTH);
+  bool isBlacklisted = CheckList(ctx, blacklist, reason);
+  if (isBlacklisted) {
     RedisModule_ReplyWithArray(ctx, 2);
     RedisModule_ReplyWithSimpleString(ctx, "BLACKLISTED");
     RedisModule_ReplyWithSimpleString(ctx, reason);
-  } else if (isMarked) {
+    return REDISMODULE_OK;
+  }
+
+  memset(reason, '\0', MAX_REASON_LENGTH);
+  bool isMarked = CheckList(ctx, marklist, reason);
+  if (isMarked) {
     RedisModule_ReplyWithArray(ctx, 2);
     RedisModule_ReplyWithSimpleString(ctx, "MARKED");
     RedisModule_ReplyWithSimpleString(ctx, reason);
-  } else {
-    RedisModule_ReplyWithArray(ctx, 2);
-    RedisModule_ReplyWithSimpleString(ctx, "OK");
-    RedisModule_ReplyWithSimpleString(ctx, "");
- }
+    return REDISMODULE_OK;
+  }
 
+  RedisModule_ReplyWithArray(ctx, 2);
+  RedisModule_ReplyWithSimpleString(ctx, "OK");
+  RedisModule_ReplyWithSimpleString(ctx, "");
   return REDISMODULE_OK;
 }
 
