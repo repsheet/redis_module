@@ -31,8 +31,8 @@ virtualenv:
 	virtualenv -p python3 venv
 	venv/bin/pip install -r requirements.txt
 
-test: virtualenv
-	venv/bin/pytest test
+test: FORCE
+	venv/bin/pytest -v --disable-warnings test
 
 clean: FORCE
 	rm -rf *.xo *.so *.o
