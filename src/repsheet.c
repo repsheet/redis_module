@@ -4,6 +4,7 @@
 #include "../rmutil/strings.h"
 #include "../rmutil/test_util.h"
 
+#define VERSION "0.0.7"
 #define MAX_REASON_LENGTH 1024
 
 static char *str(RedisModuleString *input) {
@@ -153,6 +154,11 @@ int StatusCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
 
+int VersionCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  RedisModule_ReplyWithSimpleString(ctx, VERSION);
+  return REDISMODULE_OK;
+}
+
 int RedisModule_OnLoad(RedisModuleCtx *ctx) {
   if (RedisModule_Init(ctx, "repsheet", 1, REDISMODULE_APIVER_1) == REDISMODULE_ERR) {
     return REDISMODULE_ERR;
@@ -162,6 +168,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx) {
   RMUtil_RegisterWriteCmd(ctx, "repsheet.whitelist", WhitelistCommand);
   RMUtil_RegisterWriteCmd(ctx, "repsheet.mark",      MarkCommand);
   RMUtil_RegisterWriteCmd(ctx, "repsheet.status",    StatusCommand);
+  RMUtil_RegisterWriteCmd(ctx, "repsheet.version",   VersionCommand);
 
   return REDISMODULE_OK;
 }
