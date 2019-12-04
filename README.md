@@ -6,6 +6,7 @@
 * `REPSHEET.WHITELIST` - Whitelist an IP Address
 * `REPSHEET.MARK`      - Mark an IP Address
 * `REPSHEET.STATUS`    - Get the Status of an IP Address
+* `REPSHEET.VERSION`   - Get the Current Version
 
 ## Quick Start Guide
 
