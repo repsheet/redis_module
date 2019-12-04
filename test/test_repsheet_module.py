@@ -31,3 +31,7 @@ def test_status():
     status, reason = connection.execute_command('REPSHEET.STATUS', '1.1.1.1')
     assert status == b"WHITELISTED"
     assert reason == b"whitelist test"
+
+def test_version():
+    version = connection.execute_command('REPSHEET.VERSION')
+    assert version == b"0.0.7"
